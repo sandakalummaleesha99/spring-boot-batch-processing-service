@@ -1,7 +1,8 @@
 package com.pdev.spring_boot_batch_processing_service.config;
 
-import com.pdev.spring_boot_batch_processing_service.model.Person;
+import com.pdev.spring_boot_batch_processing_service.model.Product;
 import com.pdev.spring_boot_batch_processing_service.repository.PersonRepository;
+import com.pdev.spring_boot_batch_processing_service.repository.ProductRepository;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -26,27 +27,30 @@ public class SpringBatchConfig {
     @Autowired
     private PersonRepository personRepository;
 
+    @Autowired
+    private ProductRepository productRepository;
+
     @Bean
-    public FlatFileItemReader<Person> reader() {
-        return new FlatFileItemReaderBuilder<Person>()
-                .name("personItemReader")
-                .resource(new ClassPathResource("people-1000.csv"))
+    public FlatFileItemReader<Product> reader() {
+        return new FlatFileItemReaderBuilder<Product>()
+                .name("productItemReader")
+                .resource(new ClassPathResource("product-10000.csv"))
                 .linesToSkip(1)
                 .lineMapper(lineMapper())
-                .targetType(Person.class)
+                .targetType(Product.class)
                 .build();
     }
 
-    private LineMapper<Person> lineMapper() {
-        DefaultLineMapper<Person> lineMapper = new DefaultLineMapper<>();
+    private LineMapper<Product> lineMapper() {
+        DefaultLineMapper<Product> lineMapper = new DefaultLineMapper<>();
 
         DelimitedLineTokenizer lineTokenizer = new DelimitedLineTokenizer();
         lineTokenizer.setDelimiter(",");
         lineTokenizer.setStrict(false);
-        lineTokenizer.setNames("id", "userId", "firstName", "lastName", "gender", "email", "phone", "dateOfBirth", "jobTitle");
+        lineTokenizer.setNames("id", "name", "category", "price", "isOfferApplied", "discountPercentage", "priceAfterDiscount");
 
-        BeanWrapperFieldSetMapper<Person> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
-        fieldSetMapper.setTargetType(Person.class);
+        BeanWrapperFieldSetMapper<Product> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
+        fieldSetMapper.setTargetType(Product.class);
 
         lineMapper.setLineTokenizer(lineTokenizer);
         lineMapper.setFieldSetMapper(fieldSetMapper);
@@ -55,14 +59,14 @@ public class SpringBatchConfig {
     }
 
     @Bean
-    PersonProcessor processor() {
-        return new PersonProcessor();
+    ProductProcessor processor() {
+        return new ProductProcessor();
     }
 
     @Bean
-    RepositoryItemWriter<Person> writer() {
-        RepositoryItemWriter<Person> writer = new RepositoryItemWriter<>();
-        writer.setRepository(personRepository);
+    RepositoryItemWriter<Product> writer() {
+        RepositoryItemWriter<Product> writer = new RepositoryItemWriter<>();
+        writer.setRepository(productRepository);
         writer.setMethodName("save");
         writer.setMethodName("saveAndFlush"); // Ensure DB is updated immediately
         return writer;
@@ -79,7 +83,7 @@ public class SpringBatchConfig {
     @Bean
     public Step step(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
         return new StepBuilder("csv-import-step", jobRepository)
-                .<Person, Person>chunk(10, transactionManager)
+                .<Product, Product>chunk(10, transactionManager)
                 .reader(reader())
                 .processor(processor())
                 .writer(writer())
