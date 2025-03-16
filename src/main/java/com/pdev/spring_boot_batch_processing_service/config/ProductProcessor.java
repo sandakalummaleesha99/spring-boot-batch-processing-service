@@ -8,6 +8,7 @@ public class ProductProcessor implements ItemProcessor<Product, Product> {
     @Override
     public Product process(Product product) throws Exception {
         product.setOfferApplied(Boolean.FALSE);
+        product.setDiscountPercentage(0);
         return product;
     }
 }
